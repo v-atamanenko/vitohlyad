@@ -71,6 +71,7 @@ target_link_libraries(${PROJECT_NAME}
 		SceCtrl_stub
 		SceAudio_stub
 		SceSysmodule_stub
+		SceShellSvc_stub
 		SceGxm_stub
 		SceIme_stub
 		SceCommonDialog_stub
@@ -90,6 +91,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
 		NAME ${VITA_APP_NAME}
 		FILE ${CMAKE_SOURCE_DIR}/data data
 		${CMAKE_BINARY_DIR}/cdlg-fix/cdlg-fix.skprx cdlg-fix.skprx
+		${CMAKE_SOURCE_DIR}/extras/nosleep.skprx nosleep.skprx
 		${CMAKE_SOURCE_DIR}/extras/livearea/icon0.png sce_sys/icon0.png
 		${CMAKE_SOURCE_DIR}/extras/livearea/pic0.png sce_sys/pic0.png
 		${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png

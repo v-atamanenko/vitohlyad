@@ -15,6 +15,7 @@
 #include <SDL2/SDL_image.h>
 #include <taihen.h>
 #include <vitaGL.h>
+#include <psp2/shellutil.h>
 
 #include "utils.h"
 #include "psp2_msgbox.h"
@@ -48,10 +49,21 @@ int main() {
       "Vitohlyad is booting\n"
       "====================\n");
 
-    int res = taiLoadStartKernelModule("ux0:/app/VUKR00001/cdlg-fix.skprx", 0, NULL, 0);
+    // Disable the PS button, shell is rather unusable anyway after remounting vs0:
+    sceShellUtilInitEvents(0);
+    sceShellUtilLock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN);
+
+    // Disable sleep
+    int res = taiLoadStartKernelModule("ux0:/app/VUKR00001/nosleep.skprx", 0, NULL, 0);
     if (res < 0) {
-        $("taiLoadStartKernelModule res: 0x%x\n", res);
-        msgbox_ok("taiLoadStartKernelModule error: 0x%x", res);
+        $("taiLoadStartKernelModule(nosleep) res: 0x%x\n", res);
+    }
+
+    // Hack to make cdlg work with remounted vs0:
+    res = taiLoadStartKernelModule("ux0:/app/VUKR00001/cdlg-fix.skprx", 0, NULL, 0);
+    if (res < 0) {
+        $("taiLoadStartKernelModule(cdlg-fix) res: 0x%x\n", res);
+        msgbox_ok("taiLoadStartKernelModule(cdlg-fix) error: 0x%x", res);
         return 1;
     }
 
@@ -215,7 +227,7 @@ void * _checksum_check() {
         return NULL;
     }
 
-    if (matches == 0) {
+    if (matches == 0 || matches == 1) {
         _checksum_checking_result = 0;
         return NULL;
     } else if (matches < length) {
@@ -245,19 +257,14 @@ void * _do_install() {
 
     char backuppath[1024];
     for (unsigned int i = 0; i < length; ++i) {
-        $("do_install for 1 \n");
         snprintf(backuppath, sizeof(backuppath) - 1, "%s.bak", data[i].pathname);
-        $("do_install for 2 \n");
         SceUID fd_bak = sceIoOpen(backuppath, SCE_O_RDONLY, 0777);
-        $("do_install for 3 \n");
+
         // First, let's do a backup of original files
         if (fd_bak > 0) {
-            $("do_install for 4 \n");
             // backup already exists
             sceIoClose(fd_bak);
-            $("do_install for 5 \n");
         } else {
-            $("do_install for 6 \n");
             SceUID fd_src = sceIoOpen(data[i].pathname, SCE_O_RDONLY, 0777);
             if (fd_src < 0) {
                 $("sceIoOpen failed for srcpath %s, return code 0x%x (backup)\n", srcpath, fd_src);
@@ -266,7 +273,6 @@ void * _do_install() {
                 return NULL;
             }
 
-
             SceUID fd_dst = sceIoOpen(backuppath, SCE_O_WRONLY|SCE_O_CREAT, 0777);
             if (fd_dst < 0) {
                 $("sceIoOpen failed for dstpath %s, return code 0x%x (backup)\n", data[i].pathname, fd_dst);
@@ -274,24 +280,18 @@ void * _do_install() {
                 _do_install_res = 1;
                 return NULL;
             }
-            $("do_install for 7 \n");
+
             SceSSize bytes_read;
             do {
-                $("do_install for 8 \n");
                 bytes_read = sceIoRead(fd_src, buffer, sizeof(buffer));
                 if (bytes_read > 0)
                     sceIoWrite(fd_dst, buffer, bytes_read);
-                $("bytes_read %i\n", bytes_read);
             } while (bytes_read > 0);
-
-            $("do_install for 9 \n");
 
             sceIoClose(fd_src);
 
             sceIoSyncByFd(fd_dst, 0);
             sceIoClose(fd_dst);
-
-            $("do_install for 10 \n");
 
             char * og_checksum = file_sha1sum(data[i].pathname);
             if (!sha1sum_file_check(backuppath, og_checksum)) {
@@ -472,7 +472,6 @@ void state_loading() {
 void state_cleanInstall() {
     if (!_clean_install_in_progress) {
         bool res = msgbox_yesno("Встановлення перекладу замінить English (United Kingdom) на Українську. "
-                     "Після встановлення зробіть Rebuild Database з меню Recovery."
                      "\n\n"
                      "Продовжити встановлення?");
 
