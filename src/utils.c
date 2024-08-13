@@ -142,3 +142,20 @@ bool sha1sum_file_check(const char *path, const char* reference) {
     }
     return ret;
 }
+
+void log_to_file(const char * fmt, ...) {
+    va_list list;
+    char string[1024];
+
+    va_start(list, fmt);
+        sceClibVsnprintf(string, sizeof(string)-1, fmt, list);
+    va_end(list);
+
+    SceUID fd = sceIoOpen("ux0:data/vitohlyad.log", SCE_O_WRONLY|SCE_O_CREAT|SCE_O_APPEND, 0777);
+    if (fd < 0) {
+        return;
+    }
+
+    sceIoWrite(fd, string, strlen(string));
+    sceIoClose(fd);
+}

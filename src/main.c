@@ -25,6 +25,7 @@
 #include "pic0.png.h"
 
 #define $ sceClibPrintf
+//#define $ log_to_file
 
 typedef enum {
 	AppState_Loading, 	      // Verify data integrity, initial state
@@ -185,6 +186,8 @@ void * _checksum_check() {
 
     unsigned int progress_rounded = 0;
 
+    $("checksum analysis started.\n");
+
     if (!skipSourceFiles) {
         char pathname_local[1024];
 
@@ -205,6 +208,8 @@ void * _checksum_check() {
     for (unsigned int i = 0; i < length; ++i) {
         if (sha1sum_file_check(data[i].pathname, data[i].sha1sum))
             matches++;
+        else
+            $("sha1sum mismatch for pathname %s\n", data[i].pathname);
 
         float progress = (float)(i + length) / (float)total_checks * 100;
         unsigned int floored = floorf(progress);
@@ -328,9 +333,18 @@ void * _do_install() {
         SceUID fd_dst = sceIoOpen(data[i].pathname, SCE_O_WRONLY|SCE_O_CREAT|SCE_O_TRUNC, 0777);
         if (fd_dst < 0) {
             $("sceIoOpen failed for dstpath %s, return code 0x%x\n", data[i].pathname, fd_dst);
-            strncpy(g_exitMessage, "Сталася помилка під час відкриття файла для копіювання.", sizeof(g_exitMessage)-1);
-            _do_install_res = 1;
-            return NULL;
+            $("Trying again after sceIoRemove:\n");
+
+            sceIoRemove(data[i].pathname);
+            fd_dst = sceIoOpen(data[i].pathname, SCE_O_WRONLY|SCE_O_CREAT, 0777);
+            if (fd_dst < 0) {
+                $("sceIoOpen failed AGAIN for dstpath %s, return code 0x%x\n", data[i].pathname, fd_dst);
+                strncpy(g_exitMessage, "Сталася помилка під час відкриття файла для копіювання.", sizeof(g_exitMessage)-1);
+                _do_install_res = 1;
+                return NULL;
+            } else {
+                $("It helped, continuing.\n");
+            }
         }
 
         SceSSize bytes_read;
@@ -359,6 +373,8 @@ void * _do_install() {
     // Force database rebuild to propagate changes
     sceIoRemove("ur0:shell/db/app.db");
 
+    $("do_install finished\n")
+
     return NULL;
 }
 
@@ -369,6 +385,8 @@ void * _do_uninstall() {
     unsigned int progress_rounded = 0;
     char srcpath[1024];
     char buffer[64 * 1024];
+
+    $("_do_uninstall started\n");
 
     for (unsigned int i = 0; i < length; ++i) {
         snprintf(srcpath, sizeof(srcpath) - 1, "%s.bak", data[i].pathname);
@@ -388,16 +406,25 @@ void * _do_uninstall() {
         if (fd_src < 0) {
             $("sceIoOpen failed for srcpath %s, return code 0x%x (uninstall)\n", srcpath, fd_src);
             strncpy(g_exitMessage, "Сталася помилка під час відкриття файла для копіювання.", sizeof(g_exitMessage)-1);
-            _do_install_res = 1;
+            _do_uninstall_res = 1;
             return NULL;
         }
 
-        SceUID fd_dst = sceIoOpen(data[i].pathname, SCE_O_WRONLY|SCE_O_CREAT, 0777);
+        SceUID fd_dst = sceIoOpen(data[i].pathname, SCE_O_WRONLY|SCE_O_CREAT|SCE_O_TRUNC, 0777);
         if (fd_dst < 0) {
             $("sceIoOpen failed for dstpath %s, return code 0x%x (uninstall)\n", data[i].pathname, fd_dst);
-            strncpy(g_exitMessage, "Сталася помилка під час відкриття файла для копіювання.", sizeof(g_exitMessage)-1);
-            _do_install_res = 1;
-            return NULL;
+            $("Trying again after sceIoRemove:\n");
+
+            sceIoRemove(data[i].pathname);
+            fd_dst = sceIoOpen(data[i].pathname, SCE_O_WRONLY|SCE_O_CREAT, 0777);
+            if (fd_dst < 0) {
+                $("sceIoOpen failed AGAIN for dstpath %s, return code 0x%x (uninstall)\n", data[i].pathname, fd_dst);
+                strncpy(g_exitMessage, "Сталася помилка під час відкриття файла для копіювання.", sizeof(g_exitMessage)-1);
+                _do_uninstall_res = 1;
+                return NULL;
+            } else {
+                $("It helped, continuing.\n");
+            }
         }
 
         SceSSize bytes_read;
@@ -425,7 +452,10 @@ void * _do_uninstall() {
     // Force database rebuild to propagate changes
     sceIoRemove("ur0:shell/db/app.db");
 
+    $("do_uninstall finished\n")
+
     _do_uninstall_res = 0;
+    return NULL;
 }
 
 /*

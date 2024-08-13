@@ -12,9 +12,13 @@
 #include <stddef.h>
 
 char * str_sha1sum(const char * str, size_t size);
+
 void str_replace(const char * src, char * dst, const char * needle, const char * replacement);
 
 char * file_sha1sum(const char *path);
+
 bool sha1sum_file_check(const char *path, const char* reference);
+
+void log_to_file(const char * fmt, ...);
 
 #endif //VITOHLYAD_UTILS_H
