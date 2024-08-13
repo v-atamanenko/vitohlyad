@@ -373,7 +373,7 @@ void * _do_install() {
     // Force database rebuild to propagate changes
     sceIoRemove("ur0:shell/db/app.db");
 
-    $("do_install finished\n")
+    $("do_install finished\n");
 
     return NULL;
 }
@@ -452,7 +452,7 @@ void * _do_uninstall() {
     // Force database rebuild to propagate changes
     sceIoRemove("ur0:shell/db/app.db");
 
-    $("do_uninstall finished\n")
+    $("do_uninstall finished\n");
 
     _do_uninstall_res = 0;
     return NULL;
