@@ -24,11 +24,11 @@ typedef unsigned char BYTE;             // 8-bit byte
 typedef unsigned int  WORD;             // 32-bit word, change to "long" for 16-bit machines
 
 typedef struct {
-    BYTE data[64];
-    WORD datalen;
-    unsigned long long bitlen;
-    WORD state[5];
-    WORD k[4];
+	BYTE data[64];
+	WORD datalen;
+	unsigned long long bitlen;
+	WORD state[5];
+	WORD k[4];
 } SHA1_CTX;
 
 /*********************** FUNCTION DECLARATIONS **********************/
